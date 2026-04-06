@@ -75,7 +75,7 @@ export default function MedFriend() {
     try {
       const token = await user.getIdToken()
       const caregiverList = caregivers.filter(cg => cg.online !== false)
-      await fetch(`http://localhost:5000/api/notify/test`, {
+      await fetch(`https://medreminder-backends.onrender.com/notify/test`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

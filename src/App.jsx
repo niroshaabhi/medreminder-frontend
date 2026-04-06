@@ -22,7 +22,7 @@ async function subscribeToPush() {
       userVisibleOnly: true,
       applicationServerKey: VAPID_PUBLIC_KEY,
     })
-    await fetch("http://localhost:5000/api/save-subscription", {
+    await fetch("https://medreminder-backends.onrender.com/api/save-subscription", { 
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(subscription),

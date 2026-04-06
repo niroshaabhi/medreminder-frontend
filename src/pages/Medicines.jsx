@@ -3,7 +3,8 @@ import { useAuth } from '../context/AuthContext'
 import toast from 'react-hot-toast'
 import axios from 'axios'
 
-const API = 'http://localhost:5000/api'
+import API_BASE from '../config';
+const API = API_BASE;
 
 const BLANK = { name:'', dosage:'', freq:'Once daily', condition:'🩸 Diabetes', time1:'08:00', time2:'', mode:'flex' }
 

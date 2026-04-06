@@ -4,7 +4,8 @@ import AlarmModal from '../components/AlarmModal'
 import toast from 'react-hot-toast'
 import axios from 'axios'
 
-const API = 'http://localhost:5000/api'
+import API_BASE from '../config';
+const API = API_BASE;
 
 function getMedEmoji(name = '') {
   const n = name.toLowerCase()
