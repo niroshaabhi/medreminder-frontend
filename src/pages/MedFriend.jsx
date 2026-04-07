@@ -3,8 +3,8 @@ import toast from 'react-hot-toast'
 import { useAuth } from '../context/AuthContext'
 
 const INIT_CAREGIVERS = [
-  { id:1, name:'Sarah (Wife)', phone:'+91 9655868943', emoji:'👩', channel:['WhatsApp','SMS'], online:true,  lastAlert:'2h ago', color:'linear-gradient(135deg,#8b5cf6,#7c3aed)' },
-  { id:2, name:'Raj (Son)',    phone:'+91 9655868942', emoji:'👦', channel:['SMS'],             online:true,  lastAlert:'No alerts', color:'linear-gradient(135deg,#06b6d4,#0ea5e9)' },
+  { id:1, name:'Sarah (Wife)', phone:'+919655868943', emoji:'👩', channel:['WhatsApp','SMS'], online:true,  lastAlert:'2h ago', color:'linear-gradient(135deg,#8b5cf6,#7c3aed)' },
+  { id:2, name:'Raj (Son)',    phone:'+919655868942', emoji:'👦', channel:['SMS'],             online:true,  lastAlert:'No alerts', color:'linear-gradient(135deg,#06b6d4,#0ea5e9)' },
 ]
 
 const ACTIVITY = [
@@ -24,7 +24,6 @@ export default function MedFriend() {
   const [newCg, setNewCg]           = useState({ name:'', phone:'' })
   const [showAdd, setShowAdd]       = useState(false)
 
-  // ✅ Load caregivers from localStorage when user is available
   useEffect(() => {
     if (!user) return
     try {
@@ -32,7 +31,6 @@ export default function MedFriend() {
       if (saved) {
         setCaregivers(JSON.parse(saved))
       } else {
-        // Save default caregivers to localStorage on first load
         localStorage.setItem(`caregivers_${user.uid}`, JSON.stringify(INIT_CAREGIVERS))
       }
     } catch {
@@ -40,7 +38,6 @@ export default function MedFriend() {
     }
   }, [user])
 
-  // ✅ Save caregivers to localStorage whenever they change
   useEffect(() => {
     if (!user) return
     localStorage.setItem(`caregivers_${user.uid}`, JSON.stringify(caregivers))
@@ -49,13 +46,14 @@ export default function MedFriend() {
   const addCaregiver = (e) => {
     e.preventDefault()
     if (!newCg.name || !newCg.phone) { toast.error('Please fill name and phone'); return }
+    const cleanPhone = newCg.phone.replace(/\s+/g, '').replace(/-/g, '')
     const newEntry = {
       id: Date.now(),
       name: newCg.name,
-      phone: newCg.phone,
+      phone: cleanPhone,
       emoji: '👤',
       channel: ['WhatsApp', 'SMS'],
-      online: false,
+      online: true,
       lastAlert: 'Never',
       color: 'linear-gradient(135deg,#10b981,#059669)'
     }
@@ -74,8 +72,14 @@ export default function MedFriend() {
     if (!user) return
     try {
       const token = await user.getIdToken()
-      const caregiverList = caregivers.filter(cg => cg.online !== false)
-      await fetch(`https://medreminder-backends.onrender.com/notify/test`, {
+      const caregiverList = caregivers
+        .filter(cg => cg.online !== false)
+        .map(cg => ({
+          ...cg,
+          phone: cg.phone.replace(/\s+/g, '').replace(/-/g, '')
+        }))
+
+      const res = await fetch(`https://medreminder-backends.onrender.com/notify/test`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -86,7 +90,12 @@ export default function MedFriend() {
           patientName: user.displayName || 'Patient'
         })
       })
-      toast('🚨 Test alert sent via WhatsApp & SMS!', { icon:'📨' })
+      const data = await res.json()
+      if (data.success) {
+        toast('🚨 Test alert sent via WhatsApp & SMS!', { icon:'📨' })
+      } else {
+        toast.error('Failed: ' + (data.error || 'Unknown error'))
+      }
     } catch (err) {
       console.error(err)
       toast.error('Failed to send test alert')
@@ -99,7 +108,6 @@ export default function MedFriend() {
       <div style={{ fontSize:14,color:'var(--text-muted)',marginBottom:28 }}>Caregiver monitoring — family gets notified if you miss a medicine</div>
 
       <div className="row g-3">
-        {/* Caregivers */}
         <div className="col-lg-6">
           <div className="card-custom">
             <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:18 }}>
@@ -141,16 +149,13 @@ export default function MedFriend() {
                 <div style={{ textAlign:'right', display:'flex', flexDirection:'column', alignItems:'flex-end', gap:6 }}>
                   <span className="mode-ok" style={{ fontSize:11 }}>Active</span>
                   <div style={{ fontSize:10,color:'var(--text-muted)' }}>Last: {cg.lastAlert}</div>
-                  <button
-                    onClick={() => removeCaregiver(cg.id)}
-                    style={{ fontSize:10, color:'#ef4444', background:'none', border:'none', cursor:'pointer', padding:0 }}>
+                  <button onClick={() => removeCaregiver(cg.id)} style={{ fontSize:10, color:'#ef4444', background:'none', border:'none', cursor:'pointer', padding:0 }}>
                     🗑️ Remove
                   </button>
                 </div>
               </div>
             ))}
 
-            {/* Notification settings */}
             <div style={{ marginTop:18 }}>
               <h6 style={{ fontFamily:'Sora',fontWeight:600,color:'#fff',marginBottom:12,fontSize:14 }}>Notification Settings</h6>
               {[
@@ -180,7 +185,6 @@ export default function MedFriend() {
           </div>
         </div>
 
-        {/* Activity log */}
         <div className="col-lg-6">
           <div className="card-custom">
             <h6 style={{ fontFamily:'Sora',fontWeight:600,color:'#fff',marginBottom:14 }}>Recent Activity</h6>
@@ -195,7 +199,6 @@ export default function MedFriend() {
             ))}
           </div>
 
-          {/* How MedFriend works */}
           <div className="card-custom" style={{ marginTop:16 }}>
             <h6 style={{ fontFamily:'Sora',fontWeight:600,color:'#fff',marginBottom:14 }}>How MedFriend Works</h6>
             {[
