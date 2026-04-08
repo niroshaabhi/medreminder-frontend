@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext'
 import AlarmModal from '../components/AlarmModal'
 import toast from 'react-hot-toast'
 import axios from 'axios'
+import { subscribeToPush } from '../utils/pushNotifications'
 
 import API_BASE from '../config';
 const API = API_BASE;
@@ -68,6 +69,7 @@ export default function Dashboard() {
     } catch { return [] }
   }
 
+  // ✅ Fetch medicines
   useEffect(() => {
     if (!user) return
     const fetchMeds = async () => {
@@ -102,6 +104,7 @@ export default function Dashboard() {
     fetchMeds()
   }, [user])
 
+  // ✅ Auto trigger alarm for pending medicine
   useEffect(() => {
     if (meds.length === 0) return
     const pending = meds.find(m => m.status === 'pending')
@@ -110,6 +113,27 @@ export default function Dashboard() {
       return () => clearTimeout(t)
     }
   }, [meds])
+
+  // ✅ Setup push notifications
+  useEffect(() => {
+    if (!user) return
+    const setupPush = async () => {
+      try {
+        const subscription = await subscribeToPush()
+        if (subscription) {
+          const token = await user.getIdToken()
+          await axios.post(`${API}/notify/save-subscription`, {
+            userId: user.uid,
+            subscription: subscription
+          }, { headers: { Authorization: `Bearer ${token}` } })
+          console.log('✅ Push subscription saved to backend')
+        }
+      } catch (err) {
+        console.error('Push setup error:', err)
+      }
+    }
+    setupPush()
+  }, [user])
 
   const notifyCaregivers = async (endpoint, medicineName, token) => {
     const caregivers = getStoredCaregivers()
@@ -126,7 +150,6 @@ export default function Dashboard() {
   }
 
   const markTaken = async (id) => {
-    // ✅ Find medicine BEFORE clearing alarm
     const takenMed = meds.find(m => m.id === id)
 
     setMeds(prev => {
@@ -155,7 +178,6 @@ export default function Dashboard() {
   }
 
   const markSkip = async (id) => {
-    // ✅ Find medicine BEFORE clearing alarm
     const skippedMed = meds.find(m => m.id === id)
 
     setMeds(prev => {
@@ -185,7 +207,6 @@ export default function Dashboard() {
   }
 
   const markLater = async (id) => {
-    // ✅ Find medicine BEFORE clearing alarm
     const laterMed = meds.find(m => m.id === id)
 
     toast('⏰ Reminder snoozed for 30 minutes.', { icon: '🔔' })
@@ -209,9 +230,24 @@ export default function Dashboard() {
       toast.error('Failed to notify caregivers')
     }
 
-    // ✅ Re-trigger alarm after 30 minutes
     if (laterMed) {
+      // ✅ Re-trigger alarm after 30 mins
       setTimeout(() => setAlarm(laterMed), 30 * 60 * 1000)
+
+      // ✅ Send WhatsApp to family after 30 mins
+      setTimeout(async () => {
+        try {
+          const token = await user.getIdToken()
+          await axios.post(`${API}/notify/late-reminder`, {
+            caregivers:   getStoredCaregivers(),
+            patientName:  firstName,
+            medicineName: laterMed.name || 'Medicine',
+          }, { headers: { Authorization: `Bearer ${token}` } })
+          console.log('✅ 30-min late reminder sent to family')
+        } catch (err) {
+          console.error('❌ Failed to send late reminder:', err)
+        }
+      }, 30 * 60 * 1000)
     }
   }
 
@@ -243,7 +279,6 @@ export default function Dashboard() {
       </div>
 
       <div className="row g-3">
-        
         <div className="col-lg-8">
           <div className="card-custom">
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:18 }}>
