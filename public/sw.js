@@ -35,9 +35,30 @@ self.addEventListener("fetch", (event) => {
 
 // PUSH NOTIFICATIONS
 self.addEventListener("push", (event) => {
-  const data = event.data.json()
-  self.registration.showNotification(data.title, {
-    body: data.body,
-    icon: "/icons/icon-192.png",
-  })
+  const data = event.data ? event.data.json() : {}
+  const title = data.title || 'MedRemind Alert'
+  const options = {
+    body: data.body || 'Time to take your medicine!',
+    icon: '/icons/icon-192.png',
+    badge: '/icons/icon-192.png',
+    vibrate: [200, 100, 200],
+    data: { url: data.url || '/' },
+    actions: [
+      { action: 'take', title: '✅ Take Now' },
+      { action: 'later', title: '⏰ Later' }
+    ]
+  }
+  event.waitUntil(self.registration.showNotification(title, options))
+})
+
+// NOTIFICATION CLICK
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close()
+  if (event.action === 'take') {
+    event.waitUntil(clients.openWindow('/?action=take'))
+  } else if (event.action === 'later') {
+    event.waitUntil(clients.openWindow('/?action=later'))
+  } else {
+    event.waitUntil(clients.openWindow('/'))
+  }
 })
