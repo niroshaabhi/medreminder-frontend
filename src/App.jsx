@@ -12,7 +12,7 @@ import PrescriptionScan from './pages/PrescriptionScan'
 import MedFriend        from './pages/MedFriend'
 import Medicare         from './pages/Medicare'
 
-// ✅ VAPID public key - replace after generating keys
+// ✅ VAPID public key
 const VAPID_PUBLIC_KEY = "BGQefeE6GanigTUIu9Ii4gJnq3onQZ9eHjXtQdgw9k9pqCqkhm6qc4yIPHHOI_mnR2ihxJryvEe7BT53y91G0IQ="
 
 async function subscribeToPush() {
@@ -39,6 +39,15 @@ function PrivateRoute({ children }) {
 }
 
 export default function App() {
+
+  // ✅ Keep Render backend awake
+  useEffect(() => {
+    const ping = () =>
+      fetch("https://medreminder-backends.onrender.com/ping").catch(() => {})
+    ping()
+    const interval = setInterval(ping, 14 * 60 * 1000)
+    return () => clearInterval(interval)
+  }, [])
 
   // ✅ Ask notification permission when app loads
   useEffect(() => {
